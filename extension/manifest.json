@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "MeetScribe AI — Transcripción local",
+  "short_name": "MeetScribe AI",
+  "version": "0.1.0",
+  "description": "Transcribe audio de reuniones con Whisper local, sin cuenta ni cuota mensual.",
+  "minimum_chrome_version": "116",
+  "permissions": ["tabCapture", "offscreen", "storage", "sidePanel", "activeTab"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": {"service_worker": "background.js"},
+  "side_panel": {"default_path": "panel.html"},
+  "action": {"default_title": "MeetScribe AI: abrir y capturar pestaña"}
+}

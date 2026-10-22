@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+*.log
+*.wav
+*.mp3
+*.mp4
+*.webm
+*.srt
+*.txt
+!backend/requirements.txt
+!LICENSE
+.env

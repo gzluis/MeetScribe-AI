@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeetScribe AI</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand"><div class="brand-symbol">▥</div><div><strong>meetscribe<span>.ai</span></strong><small>LOCAL TRANSCRIPTION STUDIO</small></div></div>
+      <div class="version">V 0.1</div>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow"><span class="eyebrow-line"></span> AUDIO · TEXTO · CONOCIMIENTO</div>
+      <h1>Conversaciones<br><em>que permanecen.</em></h1>
+      <p>Registre ideas de su clase sin cuotas mensuales. El audio se procesa exclusivamente en su equipo.</p>
+    </section>
+
+    <section class="section server-section">
+      <div class="section-header"><h2>01 / CONEXIÓN LOCAL</h2><span class="pill" id="serverBadge">Sin verificar</span></div>
+      <label for="token">Clave de emparejamiento</label>
+      <div class="token-row"><input id="token" type="password" autocomplete="off" placeholder="Pegue la clave del servidor" aria-label="Clave del servidor local"><button id="saveToken" class="outline" title="Guardar clave">Guardar</button></div>
+      <p class="hint">Inicie <code>backend/start_windows.bat</code> y copie la clave que aparece en la consola.</p>
+      <button id="checkServer" class="link-btn">Comprobar motor local ↗</button>
+    </section>
+
+    <section class="section recording-section">
+      <div class="section-header"><h2>02 / CAPTURA</h2><span id="stateBadge" class="pill off">Inactivo</span></div>
+      <div class="session-name" id="sessionName">Sin reunión activa</div>
+      <p id="helpText" class="hint">Abra Google Meet y haga clic en el icono de MeetScribe en la barra del navegador para iniciar.</p>
+      <div class="meter" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <button id="stop" class="stop" disabled>■ &nbsp; Detener y guardar transcripción</button>
+      <p id="errorText" class="error" role="alert"></p>
+    </section>
+
+    <section class="section transcript-section">
+      <div class="section-header"><h2>03 / TRANSCRIPCIÓN</h2><span id="count" class="count">0 segmentos</span></div>
+      <label for="sessionSelect">Reunión guardada</label>
+      <select id="sessionSelect" aria-label="Elegir reunión guardada"></select>
+      <div id="transcript" class="transcript" aria-live="polite"><div class="empty">La transcripción aparecerá aquí. Comience una captura para guardar los segmentos.</div></div>
+      <div class="actions"><button id="exportTxt" class="primary">↓ Exportar .TXT</button><button id="exportSrt" class="outline">↓ .SRT</button></div>
+    </section>
+    <footer><span>PRIVACIDAD POR DISEÑO</span><span>100% LOCAL*</span></footer>
+    <p class="fine">* El modelo Whisper se descarga una vez al instalarse. No se envía audio ni texto a servidores de MeetScribe. Solicite autorización antes de transcribir una reunión.</p>
+  </div>
+  <script src="panel.js"></script>
+</body>
+</html>
