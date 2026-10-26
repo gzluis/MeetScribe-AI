@@ -2,13 +2,15 @@
 
 **Extensión para Chrome y Microsoft Edge + transcriptor local con Whisper.** Código fuente abierto, sin registro de cuenta, sin pagos por minuto ni cuotas mensuales impuestas por este proyecto.
 
-> **Estado:** v0.1, prototipo funcional de ingeniería. El flujo completo debe validarse en Windows y reuniones reales; no es todavía un producto comercial ni está publicado en las tiendas de extensiones.
+> **Estado:** v0.2, prototipo funcional de ingeniería. El flujo completo debe validarse en Windows y reuniones reales; no es todavía un producto comercial ni está publicado en las tiendas de extensiones.
 
 ## ¿Qué hace esta versión?
 
 - Captura **audio de la pestaña activa** (Google Meet y otras pestañas con audio), cuando el usuario hace clic en el icono de la extensión.
 - Procesa audio de esa pestaña con [`faster-whisper`](https://github.com/SYSTRAN/faster-whisper) en el mismo equipo, en español.
 - Muestra segmentos con marcas de tiempo en un panel lateral y los guarda automáticamente en el navegador.
+- Permite **copiar todo el texto**, **los últimos 2 minutos** o **una selección** desde el panel lateral sin detener la captura. La copia se realiza en texto limpio, listo para pegar en una IA.
+- Ofrece lectura en vivo con desplazamiento automático opcional, botón «Ir al texto más reciente» y ajuste del tamaño de letra.
 - Exporta transcripciones a **TXT** y subtítulos a **SRT**.
 - Almacena hasta las 30 reuniones más recientes, sin subir el texto a un servicio externo.
 - Usa una clave aleatoria para proteger el servicio local y escucha únicamente en `127.0.0.1`.
@@ -17,7 +19,7 @@
 
 - **Solo transcribe el audio de la pestaña**: no mezcla el micrófono propio (V2). En Meet, las voces remotas habitualmente se oyen en la pestaña; la voz local normalmente no se reproduce ahí.
 - No separa hablantes ni genera resúmenes, documentos Word o PDF todavía.
-- Transcribe en bloques de unos 10 segundos: el retardo **depende del hardware**. En CPU lenta puede ir por detrás del audio; un buffer saturado puede ocasionar pérdida de fragmentos.
+- Transcribe en bloques de unos 10 segundos, **no de forma instantánea**: el retardo **depende del hardware**. En CPU lenta puede ir por detrás del audio; un buffer saturado puede ocasionar pérdida de fragmentos.
 - Un corte de palabra en el límite de un bloque puede afectar la exactitud. Compruebe la transcripción antes de usarla como registro oficial.
 - El servicio requiere Windows con Python y la primera descarga de un modelo de Whisper; luego puede funcionar sin conexión a internet.
 - No captura audio de una reunión pasada que no haya sido grabada.
@@ -40,7 +42,12 @@
 6. Abra una reunión de **Google Meet** en una pestaña, informe a los participantes y obtenga su consentimiento cuando corresponda.
 7. Haga clic en el icono de MeetScribe AI. Se abre el panel lateral. Pegue la clave en **Clave de emparejamiento**, pulse **Guardar** y **Comprobar motor local**.
 8. Con la pestaña de Meet activa, **vuelva a hacer clic en el icono**. Esto inicia la captura autorizada. Cuando vea `Capturando`, espere la transcripción por bloques.
-9. Para terminar, pulse **Detener y guardar transcripción**. Espere el procesamiento final y después exporte TXT o SRT.
+9. **Durante la clase**, use **Copiar todo** para llevar el texto completo a ChatGPT u otra IA, **Últimos 2 min** para formular una pregunta sobre la explicación reciente, o seleccione una frase dentro del texto y haga clic en **Selección**. La captura **no se detiene al copiar**.
+10. Para terminar, haga clic en **Detener transcripción**. Espere el procesamiento final y después exporte TXT o SRT si lo desea.
+
+**Para actualizar la extensión después de descargar una versión nueva:** en `edge://extensions` o `chrome://extensions`, haga clic en el botón de recarga de MeetScribe AI y abra nuevamente el panel lateral. No cambie la clave de emparejamiento si el servidor local sigue siendo el mismo.
+
+**Nota para el uso académico:** el panel copia únicamente texto ya reconocido. Lo que el docente está diciendo todavía no aparecerá hasta que Whisper procese el siguiente bloque (normalmente 10 segundos de audio más el tiempo de reconocimiento).
 
 **Atención:** el sonido de la pestaña se redirige al altavoz mientras dura la captura. No cierre el navegador ni la ventana de servicio antes de detener la reunión.
 
@@ -81,13 +88,19 @@ python -m unittest discover -s tests -v
 python -m uvicorn app:app --host 127.0.0.1 --port 8765
 ```
 
+Las funciones de copia se verifican con una prueba independiente:
+
+```bash
+node extension/tests/transcript-utils.test.cjs
+```
+
 ## Privacidad y seguridad
 
 Consulte [docs/SECURITY.md](docs/SECURITY.md). Las transcripciones pueden contener información sensible y están guardadas en el perfil del navegador. **No publique transcripciones, tokens o grabaciones reales en GitHub.**
 
 ## Hoja de ruta
 
-1. Importación de WAV/MP3/MP4 y pruebas de calidad en español.
+1. Importación de WAV/MP3/MP4, pruebas de calidad en español y reducción gradual de la latencia de procesamiento.
 2. Captura separada del micrófono, selección de fuente y mejora de latencia.
 3. Historial avanzado, búsqueda, exportación Word/PDF y etiquetado de asignaturas.
 4. Resúmenes locales, modo académico y diarización experimental.

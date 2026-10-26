@@ -21,3 +21,5 @@ jobs:
         run: for f in extension/*.js; do node --check "$f"; done
       - name: Validar manifest.json
         run: python -m json.tool extension/manifest.json > /dev/null
+      - name: Pruebas de copia de transcripciones
+        run: node extension/tests/transcript-utils.test.cjs

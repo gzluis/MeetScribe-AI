@@ -3,49 +3,57 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MeetScribe AI</title>
+  <title>MeetScribe AI — Apuntes en vivo</title>
   <link rel="stylesheet" href="panel.css">
 </head>
 <body>
   <div class="app">
     <header class="header">
-      <div class="brand"><div class="brand-symbol">▥</div><div><strong>meetscribe<span>.ai</span></strong><small>LOCAL TRANSCRIPTION STUDIO</small></div></div>
-      <div class="version">V 0.1</div>
+      <div class="brand"><div class="brand-symbol" aria-hidden="true">▥</div><div><strong>meetscribe<span>.ai</span></strong><small>APUNTES EN VIVO · LOCAL</small></div></div>
+      <div class="version">V 0.2</div>
     </header>
 
-    <section class="hero">
-      <div class="eyebrow"><span class="eyebrow-line"></span> AUDIO · TEXTO · CONOCIMIENTO</div>
-      <h1>Conversaciones<br><em>que permanecen.</em></h1>
-      <p>Registre ideas de su clase sin cuotas mensuales. El audio se procesa exclusivamente en su equipo.</p>
-    </section>
-
-    <section class="section server-section">
-      <div class="section-header"><h2>01 / CONEXIÓN LOCAL</h2><span class="pill" id="serverBadge">Sin verificar</span></div>
-      <label for="token">Clave de emparejamiento</label>
-      <div class="token-row"><input id="token" type="password" autocomplete="off" placeholder="Pegue la clave del servidor" aria-label="Clave del servidor local"><button id="saveToken" class="outline" title="Guardar clave">Guardar</button></div>
-      <p class="hint">Inicie <code>backend/start_windows.bat</code> y copie la clave que aparece en la consola.</p>
-      <button id="checkServer" class="link-btn">Comprobar motor local ↗</button>
-    </section>
-
-    <section class="section recording-section">
-      <div class="section-header"><h2>02 / CAPTURA</h2><span id="stateBadge" class="pill off">Inactivo</span></div>
+    <section class="section recording-section" aria-label="Estado de la sesión">
+      <div class="section-header"><h1>Clase en directo</h1><span id="stateBadge" class="pill off" role="status">Inactivo</span></div>
       <div class="session-name" id="sessionName">Sin reunión activa</div>
-      <p id="helpText" class="hint">Abra Google Meet y haga clic en el icono de MeetScribe en la barra del navegador para iniciar.</p>
-      <div class="meter" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-      <button id="stop" class="stop" disabled>■ &nbsp; Detener y guardar transcripción</button>
+      <p id="helpText" class="hint">Abra Google Meet y haga click en el icono de MeetScribe en la barra del navegador para iniciar.</p>
+      <div class="meter" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <button id="stop" class="stop" disabled>■ &nbsp; Detener transcripción</button>
       <p id="errorText" class="error" role="alert"></p>
     </section>
 
-    <section class="section transcript-section">
-      <div class="section-header"><h2>03 / TRANSCRIPCIÓN</h2><span id="count" class="count">0 segmentos</span></div>
-      <label for="sessionSelect">Reunión guardada</label>
-      <select id="sessionSelect" aria-label="Elegir reunión guardada"></select>
-      <div id="transcript" class="transcript" aria-live="polite"><div class="empty">La transcripción aparecerá aquí. Comience una captura para guardar los segmentos.</div></div>
-      <div class="actions"><button id="exportTxt" class="primary">↓ Exportar .TXT</button><button id="exportSrt" class="outline">↓ .SRT</button></div>
+    <section class="section transcript-section" aria-label="Texto transcrito">
+      <div class="section-header"><h2>TRANSCRIPCIÓN DE LA CLASE</h2><span id="count" class="count">0 fragmentos</span></div>
+      <label for="sessionSelect">Sesión</label>
+      <select id="sessionSelect" aria-label="Elegir sesión"></select>
+      <div class="copy-actions" aria-label="Copiar transcripción">
+        <button id="copyAll" class="primary" title="Copiar todo el texto disponible">Copiar todo</button>
+        <button id="copyRecent" class="outline" title="Copiar los últimos dos minutos transcritos">Últimos 2 min</button>
+        <button id="copySelection" class="outline" title="Copiar solo el texto seleccionado">Selección</button>
+      </div>
+      <p id="copyStatus" class="copy-status" role="status" aria-live="polite">Puede copiar mientras continúa la transcripción.</p>
+      <div class="reading-tools">
+        <label class="follow-label" for="followLive"><input type="checkbox" id="followLive" checked> Seguir texto nuevo</label>
+        <div class="font-controls"><button id="fontDown" class="outline small" title="Reducir tamaño de letra" aria-label="Reducir tamaño de letra">A−</button><button id="fontUp" class="outline small" title="Aumentar tamaño de letra" aria-label="Aumentar tamaño de letra">A+</button></div>
+      </div>
+      <div id="transcript" class="transcript" aria-live="off" tabindex="0"><div class="empty">La transcripción aparecerá aquí durante la reunión.</div></div>
+      <div class="bottom-actions"><button id="goBottom" class="outline">Ir al texto más reciente ↓</button></div>
+      <div class="export-actions"><button id="exportTxt" class="outline">↓ Exportar .TXT</button><button id="exportSrt" class="outline">↓ Exportar .SRT</button></div>
     </section>
-    <footer><span>PRIVACIDAD POR DISEÑO</span><span>100% LOCAL*</span></footer>
-    <p class="fine">* El modelo Whisper se descarga una vez al instalarse. No se envía audio ni texto a servidores de MeetScribe. Solicite autorización antes de transcribir una reunión.</p>
+
+    <details class="section setup-section" id="setup">
+      <summary>Configuración del motor local <span class="pill" id="serverBadge">Sin verificar</span></summary>
+      <div class="setup-body">
+        <label for="token">Clave de emparejamiento</label>
+        <div class="token-row"><input id="token" type="password" autocomplete="off" placeholder="Pegue la clave del servidor" aria-label="Clave del servidor local"><button id="saveToken" class="outline">Guardar</button></div>
+        <p class="hint">Ejecute <code>backend/start_windows.bat</code> y copie la clave que aparece en la consola.</p>
+        <button id="checkServer" class="link-btn">Comprobar motor local</button>
+      </div>
+    </details>
+    <footer><span>PROCESAMIENTO LOCAL</span><span>SIN CUOTAS POR REUNIÓN</span></footer>
+    <p class="fine">El modelo se descarga inicialmente. La herramienta no informa automáticamente a todos los participantes de Meet; respete las políticas de su institución y comunique la transcripción cuando corresponda.</p>
   </div>
+  <script src="transcript-utils.js"></script>
   <script src="panel.js"></script>
 </body>
 </html>
