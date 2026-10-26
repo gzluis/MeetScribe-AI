@@ -36,7 +36,14 @@ jobs:
           $env:HF_HUB_OFFLINE = '1'
           $result = Join-Path $env:RUNNER_TEMP 'self-test.json'
           & 'dist/MeetScribeAILocal/MeetScribeAILocal.exe' --self-test $result
-          if ($LASTEXITCODE -ne 0) { throw 'Fallo la prueba offline del motor' }
+          $exitCode = $LASTEXITCODE
+          if (Test-Path $result) {
+            Write-Host 'Diagnostico del motor Whisper:'
+            Get-Content $result -Raw | Write-Host
+          }
+          $log = Join-Path $env:USERPROFILE '.meetscribe-ai/local.log'
+          if (Test-Path $log) { Get-Content $log -Tail 35 | Write-Host }
+          if ($exitCode -ne 0) { throw 'Fallo la prueba offline del motor' }
           if (!(Test-Path $result)) { throw 'No se genero el resultado de la prueba' }
           $report = Get-Content $result -Raw | ConvertFrom-Json
           if ($report.status -ne 'ok') { throw "Fallo el motor: $($report.message)" }
