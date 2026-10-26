@@ -1,0 +1,63 @@
+name: Generar instalador Windows
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'backend/**'
+      - 'packaging/windows/**'
+      - '.github/workflows/windows-installer.yml'
+permissions:
+  contents: read
+jobs:
+  build-windows-x64:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar Python (solo en el equipo que compila)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+      - name: Instalar dependencias de compilación
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt 'pyinstaller>=6.10,<7' 'huggingface_hub>=0.25,<2'
+      - name: Empaquetar modelo base para uso sin conexión
+        run: python packaging/windows/download_model.py
+      - name: Congelar el motor local en un EXE
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --name MeetScribeAILocal --paths backend --collect-all faster_whisper --collect-all ctranslate2 --collect-all av --collect-all tokenizers --collect-submodules uvicorn --add-data 'packaging/windows/models/base;models/base' backend/desktop.py
+      - name: Comprobar que el motor arranca sin Internet
+        shell: pwsh
+        run: |
+          $env:HF_HUB_OFFLINE = '1'
+          $result = Join-Path $env:RUNNER_TEMP 'self-test.json'
+          & 'dist/MeetScribeAILocal/MeetScribeAILocal.exe' --self-test $result
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo la prueba offline del motor' }
+          if (!(Test-Path $result)) { throw 'No se genero el resultado de la prueba' }
+          $report = Get-Content $result -Raw | ConvertFrom-Json
+          if ($report.status -ne 'ok') { throw "Fallo el motor: $($report.message)" }
+          Write-Host 'Modelo Whisper cargado correctamente sin Internet'
+      - name: Asegurar compilador Inno Setup
+        shell: pwsh
+        run: |
+          if (!(Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+      - name: Crear instalador de Windows
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { throw "No se encontro Inno Setup en $iscc" }
+          & $iscc 'packaging/windows/installer.iss'
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion de instalador' }
+      - name: Publicar instalador descargable de la ejecución
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeetScribe-AI-Local-Windows-x64
+          path: packaging/windows/output/MeetScribe-AI-Local-Setup-v*.exe
+          if-no-files-found: error
+          retention-days: 30

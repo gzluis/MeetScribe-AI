@@ -6,6 +6,7 @@ import json
 import os
 import secrets
 from pathlib import Path
+from runtime import resolve_model_name
 
 import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -31,7 +32,7 @@ def get_token() -> str:
 
 
 TOKEN = get_token()
-MODEL_NAME = os.getenv("MEETSCRIBE_MODEL", "base")
+MODEL_NAME = resolve_model_name()
 DEVICE = os.getenv("MEETSCRIBE_DEVICE", "cpu")
 COMPUTE_TYPE = os.getenv("MEETSCRIBE_COMPUTE_TYPE", "int8")
 model: WhisperModel | None = None

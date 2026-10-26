@@ -2,7 +2,7 @@
 
 **Extensión para Chrome y Microsoft Edge + transcriptor local con Whisper.** Código fuente abierto, sin registro de cuenta, sin pagos por minuto ni cuotas mensuales impuestas por este proyecto.
 
-> **Estado:** v0.2, prototipo funcional de ingeniería. El flujo completo debe validarse en Windows y reuniones reales; no es todavía un producto comercial ni está publicado en las tiendas de extensiones.
+> **Estado:** v0.3, prototipo y empaquetado Windows automatizado (pendiente de validación final). El flujo completo debe validarse en Windows y reuniones reales; no es todavía un producto comercial ni está publicado en las tiendas de extensiones.
 
 ## ¿Qué hace esta versión?
 
@@ -21,10 +21,24 @@
 - No separa hablantes ni genera resúmenes, documentos Word o PDF todavía.
 - Transcribe en bloques de unos 10 segundos, **no de forma instantánea**: el retardo **depende del hardware**. En CPU lenta puede ir por detrás del audio; un buffer saturado puede ocasionar pérdida de fragmentos.
 - Un corte de palabra en el límite de un bloque puede afectar la exactitud. Compruebe la transcripción antes de usarla como registro oficial.
-- El servicio requiere Windows con Python y la primera descarga de un modelo de Whisper; luego puede funcionar sin conexión a internet.
+- El instalador de Windows generado por GitHub incluye el entorno Python y el modelo Whisper base; la instalación no requiere Python ni comandos. El modo de desarrollo sigue ofreciendo start_windows.bat.
 - No captura audio de una reunión pasada que no haya sido grabada.
 
-## Requisitos
+## MeetScribe AI Local para Windows (instalador)
+
+La aplicación de Windows empaqueta Python, el servicio local, `faster-whisper` y el modelo `base`. **El usuario no instala Python, no descarga el modelo ni ejecuta comandos.** La extensión sigue siendo necesaria para capturar audio de Google Meet dentro del navegador.
+
+Para obtener el instalador compilado (tras una compilación satisfactoria en GitHub):
+
+1. Abre [GitHub Actions → Generar instalador Windows](https://github.com/gzluis/MeetScribe-AI/actions/workflows/windows-installer.yml).
+2. Abre la ejecución completada en verde y descarga el artefacto **MeetScribe-AI-Local-Windows-x64**.
+3. Extrae el ZIP del artefacto y ejecuta **MeetScribe-AI-Local-Setup-v0.3.0.exe** en Windows 10/11 de 64 bits.
+4. Abre **MeetScribe AI Local** desde el menú Inicio. El motor se inicia automáticamente y muestra una clave con botón **Copiar clave**.
+5. Instala también la extensión de Edge/Chrome, pega la clave y usa las funciones de copia en vivo.
+
+El instalador no está firmado digitalmente; Windows SmartScreen puede mostrar una advertencia de editor desconocido. No desactives la protección: comprueba el origen y la integridad del archivo antes de ejecutarlo. El paquete puede ser grande porque incluye el modelo y librerías de transcripción. Si el motor no inicia, consulta `%USERPROFILE%\.meetscribe-ai\local.log` y abre un issue en GitHub. El empaquetado se compila en un runner real de Windows mediante PyInstaller e Inno Setup; **el código fuente no es por sí solo un EXE**.
+
+## Requisitos para modo de desarrollo (sin instalador)
 
 - **Windows 10/11** con **Python 3.11 o 3.12** (instalado y accesible mediante el comando `py`).
 - **Edge o Chrome 116+**.
@@ -104,6 +118,6 @@ Consulte [docs/SECURITY.md](docs/SECURITY.md). Las transcripciones pueden conten
 2. Captura separada del micrófono, selección de fuente y mejora de latencia.
 3. Historial avanzado, búsqueda, exportación Word/PDF y etiquetado de asignaturas.
 4. Resúmenes locales, modo académico y diarización experimental.
-5. Instalador Windows, pruebas automatizadas de navegador y empaquetado para las tiendas de extensiones.
+5. Validar instalador Windows en una PC distinta, pruebas automatizadas de navegador y empaquetado para las tiendas de extensiones.
 
 **Licencia:** MIT.

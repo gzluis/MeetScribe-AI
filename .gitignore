@@ -13,3 +13,10 @@ __pycache__/
 !backend/requirements.txt
 !LICENSE
 .env
+
+# Empaquetado Windows y modelos (no subir binarios pesados al repositorio)
+dist/
+build/
+*.spec
+packaging/windows/models/
+packaging/windows/output/
