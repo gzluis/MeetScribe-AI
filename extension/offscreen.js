@@ -11,23 +11,22 @@ let sentAudioBytes = 0;
 let maxAudioPeak = 0;
 let lastProbeReport = 0;
 
+// Los documentos offscreen solo pueden utilizar chrome.runtime (Manifest V3).
+// Todo acceso al almacenamiento se delega al service worker.
+async function sendToWorker(type, payload) {
+  const reply = await chrome.runtime.sendMessage({target: 'background', type, ...payload});
+  if (!reply?.ok) throw new Error(reply?.error || 'El servicio de extensión no confirmó el guardado.');
+  return reply;
+}
+
 async function saveCapture(partial) {
-  const {capture = {}} = await chrome.storage.local.get('capture');
-  await chrome.storage.local.set({capture: {...capture, ...partial}});
+  return sendToWorker('CAPTURE_PATCH', {partial});
 }
 
 function appendSegment(segment) {
+  const snapshot = session ? {...session} : null;
   saving = saving.then(async () => {
-    const {sessions = []} = await chrome.storage.local.get('sessions');
-    let item = sessions.find(s => s.id === session?.id);
-    if (!item && session) {
-      item = {...session, segments: []};
-      sessions.unshift(item);
-    }
-    if (!item) return;
-    item.segments.push(segment);
-    // 30 últimas reuniones; nunca se suben transcripciones a un servicio externo.
-    await chrome.storage.local.set({sessions: sessions.slice(0, 30)});
+    if (snapshot) await sendToWorker('SESSION_SEGMENT', {session: snapshot, segment});
   }).catch(error => console.error('No se pudo guardar el segmento:', error));
 }
 
@@ -164,11 +163,7 @@ async function startCapture(message) {
         reject(new Error('El procesador de audio no pudo activarse. Reinicie la captura sobre una pestaña con sonido.')), 7000))
     ]);
     if (context.state !== 'running') throw new Error('El procesador de audio está suspendido; compruebe los permisos multimedia de Edge.');
-    const storage = await chrome.storage.local.get('sessions');
-    const current = storage.sessions || [];
-    if (!current.some(s => s.id === session.id)) {
-      await chrome.storage.local.set({sessions: [{...session, segments: []}, ...current].slice(0, 30)});
-    }
+    await sendToWorker('SESSION_START', {session: {...session}});
     await saveCapture({audioProbe: {sentSeconds: 0, rms: 0, peak: 0, maxPeak: 0, channels: 0, updatedAt: Date.now()}});
     return {ok: true};
   } catch (error) {
@@ -178,7 +173,7 @@ async function startCapture(message) {
 }
 
 // Confirmar el mensaje ANTES de esperar permisos/audio/red.
-// Los resultados y errores se comunican mediante chrome.storage.local,
+// Los resultados y errores se comunican mediante mensajes al service worker,
 // de modo que un AudioContext suspendido no cierre un canal asíncrono.
 chrome.runtime.onMessage.addListener((message, _sender, respond) => {
   if (message.target !== 'offscreen') return false;
