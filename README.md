@@ -24,6 +24,20 @@
 - El instalador de Windows generado por GitHub incluye el entorno Python y el modelo Whisper base; la instalación no requiere Python ni comandos. El modo de desarrollo sigue ofreciendo start_windows.bat.
 - No captura audio de una reunión pasada que no haya sido grabada.
 
+## Corrección v0.3.2: mensaje «A listener indicated an asynchronous response…»
+
+Este mensaje significa que la extensión perdió un canal de respuesta durante la inicialización de la captura. **No demuestra un fallo del modelo Whisper**. En v0.3.2 el documento offscreen confirma inmediatamente la recepción de los mensajes de inicio/detención y comunica el resultado mediante el almacenamiento local; también se añadió una espera máxima para activar AudioContext. El estado **Preparando** ya no se confunde con **Capturando**. No garantiza funcionamiento hasta probar en Edge con audio real.
+
+**Actualizar sin desinstalar la aplicación de Windows ni perder la configuración de la extensión:**
+
+1. Cierre el panel de MeetScribe y detenga la captura, si está activa.
+2. Descargue el ZIP actualizado de GitHub y extraiga sus archivos.
+3. En la carpeta `extension` que **ya está instalada** en Edge, sustituya el contenido por la nueva carpeta `extension` (conserve su ubicación; no reemplace `backend`).
+4. Abra `edge://extensions` y haga clic en **Recargar** en la tarjeta de MeetScribe AI. Confirme **Versión 0.3.2**.
+5. Abra la aplicación MeetScribe AI Local (v0.3.0), reproduzca un video autorizado con voces en español, haga click en el icono de MeetScribe sobre esa pestaña y verifique que aparece **Preparando**, luego **Capturando**. Si ocurre un error, anote el mensaje exacto mostrado en el panel.
+
+**Nota:** desinstalar la extensión puede eliminar su configuración e historial; es preferible actualizar los archivos en la misma carpeta y pulsar Recargar. No vuelva a ejecutar `backend/start_windows.bat` cuando tenga instalada MeetScribe AI Local en Windows.
+
 ## Si aparece «Capturando» pero sigue en «0 fragmentos»
 
 A partir de **la extensión v0.3.1**, el panel muestra el **diagnóstico del audio real** debajo del nombre de la clase:
