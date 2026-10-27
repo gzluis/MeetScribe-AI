@@ -189,6 +189,10 @@ async function startCapture(message) {
 // de modo que un AudioContext suspendido no cierre un canal asíncrono.
 chrome.runtime.onMessage.addListener((message, _sender, respond) => {
   if (message.target !== 'offscreen') return false;
+  if (message.type === 'PING') {
+    respond({ok: true, source: 'offscreen'});
+    return false;
+  }
   if (message.type === 'START') {
     if (startTask || mediaStream || websocket) {
       respond({ok: false, error: 'Hay un intento de captura en curso. Cancele e inténtelo nuevamente.'});
