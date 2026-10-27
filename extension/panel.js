@@ -82,6 +82,7 @@ function drawTranscript() {
 }
 
 function describeAudio(capture, segmentCount) {
+  if (capture.starting) return capture.stage || 'Preparando captura de audio...';
   if (!capture.active) return capture.processing
     ? 'Terminando de procesar el último audio.'
     : 'Diagnóstico de audio disponible al iniciar una captura.';
@@ -137,16 +138,20 @@ async function render() {
   const capture = storage.capture || {};
   savedSessions = storage.sessions || [];
   const live = Boolean(capture.active);
+  const starting = Boolean(capture.starting);
   document.getElementById('stop').disabled = !live;
   document.querySelector('.meter').classList.toggle('active', live && Number(capture.audioProbe?.peak || 0) > 0.003);
   document.getElementById('audioDiagnostic').textContent = describeAudio(
     capture, (savedSessions.find(s => s.id === storage.activeSessionId)?.segments || []).length);
-  stateBadge.textContent = live ? (capture.processing ? 'Procesando' : 'Capturando') : (capture.processing ? 'Finalizando' : 'Inactivo');
+  stateBadge.textContent = starting ? 'Preparando' :
+    (live ? (capture.processing ? 'Procesando' : 'Capturando') : (capture.processing ? 'Finalizando' : 'Inactivo'));
   stateBadge.className = `pill ${live ? '' : 'off'}`;
   sessionName.textContent = capture.title || 'Sin reunión activa';
   helpText.textContent = live
     ? 'La transcripción continúa aunque copies o selecciones texto. Los nuevos fragmentos aparecen aquí.'
-    : (capture.processing ? 'Procesando los últimos fragmentos de la sesión.' : 'Abra Meet y haga click en el icono de la extensión para comenzar.');
+    : (starting ? 'Inicializando el capturador: espere la confirmación antes de hacer otro click.'
+      : (capture.processing ? 'Procesando los últimos fragmentos de la sesión.'
+        : 'Abra Meet y haga click en el icono de la extensión para comenzar.'));
   errorText.textContent = capture.error || '';
   drawSessions(storage.activeSessionId, live);
 }
@@ -157,7 +162,8 @@ async function checkServer() {
     const response = await fetch('http://127.0.0.1:8765/health', {cache: 'no-store'});
     const info = await response.json();
     if (!info.ready) throw new Error('Modelo sin cargar');
-    serverBadge.textContent = `Listo · ${info.model}`;
+    serverBadge.textContent = info.model?.includes('\\') || info.model?.includes('/') ?
+      'Whisper listo · local' : `Listo · ${info.model}`;
     serverBadge.className = 'pill';
   } catch (_) {
     serverBadge.textContent = 'Desconectado';
@@ -238,6 +244,8 @@ chrome.storage.onChanged.addListener((_changes, namespace) => {
   if (namespace === 'local') rendering = rendering.then(render).catch(console.error);
 });
 (async () => {
+  const versionLabel = document.getElementById('extensionVersion');
+  if (versionLabel) versionLabel.textContent = 'V ' + chrome.runtime.getManifest().version;
   const saved = await chrome.storage.local.get('pairingToken');
   tokenInput.value = saved.pairingToken || '';
   if (!saved.pairingToken) document.getElementById('setup').open = true;
