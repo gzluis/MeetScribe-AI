@@ -23,3 +23,5 @@ jobs:
         run: python -m json.tool extension/manifest.json > /dev/null
       - name: Pruebas de copia de transcripciones
         run: node extension/tests/transcript-utils.test.cjs
+      - name: Regresión Manifest V3 - almacenamiento offscreen
+        run: node extension/tests/offscreen-storage.test.cjs
