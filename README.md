@@ -24,6 +24,20 @@
 - El instalador de Windows generado por GitHub incluye el entorno Python y el modelo Whisper base; la instalación no requiere Python ni comandos. El modo de desarrollo sigue ofreciendo start_windows.bat.
 - No captura audio de una reunión pasada que no haya sido grabada.
 
+## Versión 0.3.3: solución al bloqueo «Preparando → Iniciando captura de audio»
+
+**Causa confirmada en código:** `offscreen.js` llamaba directamente a `chrome.storage.local`. En Manifest V3 el documento *offscreen* solo tiene acceso a `chrome.runtime`; no puede utilizar la API de almacenamiento. La excepción ocurría antes de iniciar `getUserMedia()` y el panel quedaba bloqueado. Se corrigió el flujo: el documento offscreen envía mensajes `CAPTURE_PATCH`, `SESSION_START` y `SESSION_SEGMENT` al service worker, que guarda los datos en `chrome.storage.local`. Ahora también se verifica el documento con `PING` antes de solicitar el identificador de captura y se reduce el riesgo de que expire.
+
+**Actualizar en Edge sin reinstalar la aplicación Windows:**
+
+1. Detenga/cancele el intento de captura y cierre el panel de MeetScribe.
+2. Descargue el ZIP actual del repositorio y **reemplace solo el contenido** de la carpeta `extension` que cargó en Edge; no toque `backend` ni la aplicación Windows.
+3. Abra `edge://extensions`, haga click en **Recargar** para MeetScribe y compruebe **Versión 0.3.3**. Mantenga abierta MeetScribe AI Local (Windows v0.3.0), con el motor en «Listo».
+4. Reproduzca una pestaña con voz en español; haga click una vez en el icono de MeetScribe (si el estado antiguo «Preparando» sigue en memoria, espere 20 segundos desde el intento anterior e inténtelo de nuevo).
+5. Observe la secuencia **Preparando → Capturando**, el diagnóstico de sonido y los fragmentos; para detener haga click en **Detener transcripción**.
+
+El cambio corrige el uso incompatible de una API y pasó pruebas simuladas de mensajería/almacenamiento; la captura real en Edge sigue requiriendo validación.
+
 ## Corrección v0.3.2: mensaje «A listener indicated an asynchronous response…»
 
 Este mensaje significa que la extensión perdió un canal de respuesta durante la inicialización de la captura. **No demuestra un fallo del modelo Whisper**. En v0.3.2 el documento offscreen confirma inmediatamente la recepción de los mensajes de inicio/detención y comunica el resultado mediante el almacenamiento local; también se añadió una espera máxima para activar AudioContext. El estado **Preparando** ya no se confunde con **Capturando**. No garantiza funcionamiento hasta probar en Edge con audio real.
