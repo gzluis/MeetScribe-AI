@@ -22,31 +22,38 @@ async function updateStatus(values) {
 
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab?.id) return;
-  // La acción sobre el icono es el gesto del usuario requerido por tabCapture.
-  try { await chrome.sidePanel.open({tabId: tab.id}); } catch (_) { /* Side panel opcional */ }
-  const saved = await chrome.storage.local.get(['pairingToken', 'capture']);
-  if (saved.capture?.active) return; // El panel ya permite detener.
-  if (!saved.pairingToken) {
-    await updateStatus({active: false, error: 'Pegue primero la clave del servidor local.'});
-    return;
-  }
+  const showPanel = () => { void chrome.sidePanel.open({tabId: tab.id}).catch(console.error); };
   try {
+    const saved = await chrome.storage.local.get(['pairingToken', 'capture']);
+    if (saved.capture?.active || saved.capture?.starting) { showPanel(); return; }
+    if (!saved.pairingToken) {
+      showPanel();
+      await updateStatus({active: false, starting: false, error: 'Pegue primero la clave del servidor local.'});
+      return;
+    }
+    await ensureOffscreen();
+    // Solicitar la autorización ANTES de abrir el panel y de hacer consultas al servidor;
+    // así preservamos el gesto del usuario exigido por tabCapture.
+    const streamId = await chrome.tabCapture.getMediaStreamId({targetTabId: tab.id});
+    showPanel();
     const response = await fetch('http://127.0.0.1:8765/health', {cache: 'no-store'});
     if (!response.ok || !(await response.json()).ready) throw new Error('El motor local aún no está listo.');
-    await ensureOffscreen();
-    const streamId = await chrome.tabCapture.getMediaStreamId({targetTabId: tab.id});
     const sessionId = crypto.randomUUID();
     const title = (tab.title || 'Reunión').slice(0, 120);
     await chrome.storage.local.set({
       activeSessionId: sessionId,
-      capture: {active: true, sessionId, title, startedAt: new Date().toISOString(), error: ''}
+      capture: {active: false, starting: true, sessionId, title, startedAt: new Date().toISOString(),
+        error: '', stage: 'Iniciando captura de audio', processing: false}
     });
+    // El documento offscreen confirma recepción inmediatamente; informará estado real por storage.
     const result = await chrome.runtime.sendMessage({
       target: 'offscreen', type: 'START', streamId, sessionId, title, token: saved.pairingToken
     });
-    if (!result?.ok) throw new Error(result?.error || 'No se pudo iniciar la captura');
+    if (!result?.ok) throw new Error(result?.error || 'El capturador no recibió el mensaje de inicio.');
   } catch (error) {
-    await updateStatus({active: false, error: error.message || String(error)});
+    showPanel();
+    await updateStatus({active: false, starting: false, error: error.message || String(error),
+      stage: 'No se pudo iniciar la captura'});
   }
 });
 
