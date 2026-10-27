@@ -24,6 +24,17 @@
 - El instalador de Windows generado por GitHub incluye el entorno Python y el modelo Whisper base; la instalación no requiere Python ni comandos. El modo de desarrollo sigue ofreciendo start_windows.bat.
 - No captura audio de una reunión pasada que no haya sido grabada.
 
+## Si aparece «Capturando» pero sigue en «0 fragmentos»
+
+A partir de **la extensión v0.3.1**, el panel muestra el **diagnóstico del audio real** debajo del nombre de la clase:
+
+- **Sin canales/segundos de audio:** la pestaña no está entregando muestras al procesador. Compruebe que esté seleccionada la pestaña correcta, con audio, y reinicie la captura.
+- **Segundos enviados pero sonido prácticamente silencioso:** la captura está activa, pero no se detecta voz. Compruebe el volumen de la pestaña y que alguien esté hablando.
+- **Audio detectado y segundos enviados, pero 0 fragmentos:** revise si el motor está procesando; si persiste durante una prueba de voz de más de 30 segundos, detenga la captura, vuelva a iniciarla y registre el mensaje mostrado para abrir un issue.
+- El indicador visual de barras solo se anima si el último bloque contiene un nivel medible; en versiones anteriores se animaba aunque no hubiera audio.
+
+**Para actualizar desde la v0.2/v0.3:** descargue el ZIP actual del repositorio, extraiga la carpeta `extension`, detenga cualquier captura y recargue la extensión en `edge://extensions` mediante el botón de recarga. Si la extensión anterior se había instalado desde una carpeta distinta, elimínela y cargue la carpeta `extension` nueva. **No hace falta reinstalar MeetScribe AI Local ni Python**, porque esta mejora es solo del navegador. Mantenga privada la clave de emparejamiento y cualquier texto de una clase real.
+
 ## MeetScribe AI Local para Windows (instalador)
 
 La aplicación de Windows empaqueta Python, el servicio local, `faster-whisper` y el modelo `base`. **El usuario no instala Python, no descarga el modelo ni ejecuta comandos.** La extensión sigue siendo necesaria para capturar audio de Google Meet dentro del navegador.
