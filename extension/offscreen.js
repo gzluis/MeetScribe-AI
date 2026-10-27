@@ -7,6 +7,9 @@ let authenticated = false;
 let finishing = false;
 let saving = Promise.resolve();
 let stopTimer = null;
+let sentAudioBytes = 0;
+let maxAudioPeak = 0;
+let lastProbeReport = 0;
 
 async function saveCapture(partial) {
   const {capture = {}} = await chrome.storage.local.get('capture');
@@ -68,6 +71,9 @@ async function finalize(error = '') {
 async function startCapture(message) {
   if (mediaStream || websocket) return {ok: false, error: 'Ya existe una captura activa.'};
   finishing = false;
+  sentAudioBytes = 0;
+  maxAudioPeak = 0;
+  lastProbeReport = 0;
   session = {id: message.sessionId, title: message.title, createdAt: new Date().toISOString()};
   try {
     mediaStream = await Promise.race([
@@ -117,15 +123,40 @@ async function startCapture(message) {
       if (!finishing && session) finalize('Se cerró la conexión con el transcriptor.');
     };
     audioNode.port.onmessage = event => {
+      const data = event.data;
+      if (data?.type === 'level') {
+        maxAudioPeak = Math.max(maxAudioPeak, Number(data.peak) || 0);
+        const now = Date.now();
+        if (now - lastProbeReport >= 950) {
+          lastProbeReport = now;
+          void saveCapture({audioProbe: {
+            sentSeconds: Math.round(sentAudioBytes / 32000 * 10) / 10,
+            rms: Number(data.rms) || 0,
+            peak: Number(data.peak) || 0,
+            maxPeak: maxAudioPeak,
+            channels: data.channels || 0,
+            updatedAt: now
+          }}).catch(console.error);
+        }
+        return;
+      }
+      if (!(data instanceof ArrayBuffer)) return;
       if (authenticated && websocket?.readyState === WebSocket.OPEN && !finishing) {
         if (websocket.bufferedAmount < 5_000_000) {
-          websocket.send(event.data);
+          websocket.send(data);
+          sentAudioBytes += data.byteLength;
         } else {
-          saveCapture({error: 'El motor va más lento que el audio: se han perdido fragmentos.'});
+          void saveCapture({error: 'El motor va más lento que el audio: se han perdido fragmentos.'});
         }
       }
     };
     await context.resume();
+    const storage = await chrome.storage.local.get('sessions');
+    const current = storage.sessions || [];
+    if (!current.some(s => s.id === session.id)) {
+      await chrome.storage.local.set({sessions: [{...session, segments: []}, ...current].slice(0, 30)});
+    }
+    await saveCapture({audioProbe: {sentSeconds: 0, rms: 0, peak: 0, maxPeak: 0, channels: 0, updatedAt: Date.now()}});
     return {ok: true};
   } catch (error) {
     await finalize(error.message || String(error));
