@@ -139,7 +139,9 @@ async function render() {
   savedSessions = storage.sessions || [];
   const live = Boolean(capture.active);
   const starting = Boolean(capture.starting);
-  document.getElementById('stop').disabled = !live;
+  const stopButton = document.getElementById('stop');
+  stopButton.disabled = !live && !starting;
+  stopButton.textContent = starting ? 'Cancelar inicio' : '■  Detener transcripción';
   document.querySelector('.meter').classList.toggle('active', live && Number(capture.audioProbe?.peak || 0) > 0.003);
   document.getElementById('audioDiagnostic').textContent = describeAudio(
     capture, (savedSessions.find(s => s.id === storage.activeSessionId)?.segments || []).length);
