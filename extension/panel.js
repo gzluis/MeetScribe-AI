@@ -81,6 +81,29 @@ function drawTranscript() {
   }
 }
 
+function describeAudio(capture, segmentCount) {
+  if (!capture.active) return capture.processing
+    ? 'Terminando de procesar el último audio.'
+    : 'Diagnóstico de audio disponible al iniciar una captura.';
+  const d = capture.audioProbe;
+  if (!d || !d.updatedAt) return 'Comprobando si la pestaña entrega audio...';
+  if (Date.now() - d.updatedAt > 7000)
+    return 'No llegan nuevas mediciones de audio. Compruebe que la pestaña siga reproduciendo sonido.';
+  if (!d.channels)
+    return 'No se ha detectado ningún canal de audio. Compruebe la pestaña seleccionada.';
+  const seconds = Number(d.sentSeconds || 0);
+  if (seconds < 2)
+    return 'Audio conectado. Comprobando el nivel real de sonido...';
+  const signal = Number(d.maxPeak || 0);
+  if (signal < 0.003)
+    return 'Se envían ' + seconds.toFixed(1) + ' s, pero el sonido está prácticamente en silencio. Compruebe el audio de la pestaña.';
+  if (capture.processing)
+    return 'Audio detectado: ' + seconds.toFixed(1) + ' s enviados. Whisper está procesando un bloque.';
+  if (segmentCount === 0 && seconds >= 20)
+    return 'Audio detectado y ' + seconds.toFixed(1) + ' s enviados, pero 0 fragmentos reconocidos. Detenga y reinicie la captura; si continúa, revise el motor local.';
+  return 'Audio real detectado · ' + seconds.toFixed(1) + ' s enviados al motor local.';
+}
+
 function drawSessions(activeId, isActive) {
   const visible = savedSessions.map(s => s.id);
   const next = isActive && visible.includes(activeId) ? activeId :
@@ -115,7 +138,9 @@ async function render() {
   savedSessions = storage.sessions || [];
   const live = Boolean(capture.active);
   document.getElementById('stop').disabled = !live;
-  document.querySelector('.meter').classList.toggle('active', live);
+  document.querySelector('.meter').classList.toggle('active', live && Number(capture.audioProbe?.peak || 0) > 0.003);
+  document.getElementById('audioDiagnostic').textContent = describeAudio(
+    capture, (savedSessions.find(s => s.id === storage.activeSessionId)?.segments || []).length);
   stateBadge.textContent = live ? (capture.processing ? 'Procesando' : 'Capturando') : (capture.processing ? 'Finalizando' : 'Inactivo');
   stateBadge.className = `pill ${live ? '' : 'off'}`;
   sessionName.textContent = capture.title || 'Sin reunión activa';
