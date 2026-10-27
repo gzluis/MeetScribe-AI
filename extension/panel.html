@@ -10,7 +10,7 @@
   <div class="app">
     <header class="header">
       <div class="brand"><div class="brand-symbol" aria-hidden="true">▥</div><div><strong>meetscribe<span>.ai</span></strong><small>APUNTES EN VIVO · LOCAL</small></div></div>
-      <div class="version">V 0.2</div>
+      <div class="version" id="extensionVersion">V 0.3.2</div>
     </header>
 
     <section class="section recording-section" aria-label="Estado de la sesión">
@@ -47,7 +47,7 @@
       <div class="setup-body">
         <label for="token">Clave de emparejamiento</label>
         <div class="token-row"><input id="token" type="password" autocomplete="off" placeholder="Pegue la clave del servidor" aria-label="Clave del servidor local"><button id="saveToken" class="outline">Guardar</button></div>
-        <p class="hint">Ejecute <code>backend/start_windows.bat</code> y copie la clave que aparece en la consola.</p>
+        <p class="hint">Abra MeetScribe AI Local desde el menú Inicio de Windows y utilice el botón <strong>Copiar clave</strong>. No necesita ejecutar scripts ni instalar Python.</p>
         <button id="checkServer" class="link-btn">Comprobar motor local</button>
       </div>
     </details>
