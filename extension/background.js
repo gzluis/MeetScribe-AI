@@ -20,6 +20,22 @@ async function updateStatus(values) {
   await chrome.storage.local.set({capture: values});
 }
 
+// Comprobar que el documento offscreen ha cargado su listener antes de
+// generar el streamId, ya que Chrome lo invalida después de pocos segundos.
+async function waitForOffscreen() {
+  for (let i = 0; i < 6; i++) {
+    try {
+      const result = await Promise.race([
+        chrome.runtime.sendMessage({target: 'offscreen', type: 'PING'}),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('PING agotado')), 1200))
+      ]);
+      if (result?.ok && result.source === 'offscreen') return;
+    } catch (_) { /* El documento puede estar cargando */ }
+    await new Promise(resolve => setTimeout(resolve, 150));
+  }
+  throw new Error('El capturador de audio no respondió. Recargue la extensión e inténtelo nuevamente.');
+}
+
 // Único punto autorizado para guardar datos: los documentos offscreen de
 // Manifest V3 solo pueden utilizar chrome.runtime.
 let storageQueue = Promise.resolve();
@@ -80,12 +96,12 @@ chrome.action.onClicked.addListener(async (tab) => {
       return;
     }
     await ensureOffscreen();
-    // Solicitar la autorización ANTES de abrir el panel y de hacer consultas al servidor;
-    // así preservamos el gesto del usuario exigido por tabCapture.
-    const streamId = await chrome.tabCapture.getMediaStreamId({targetTabId: tab.id});
-    showPanel();
+    await waitForOffscreen();
+    // Verificar Whisper antes de crear streamId: el ID caduca rápidamente.
     const response = await fetch('http://127.0.0.1:8765/health', {cache: 'no-store'});
     if (!response.ok || !(await response.json()).ready) throw new Error('El motor local aún no está listo.');
+    const streamId = await chrome.tabCapture.getMediaStreamId({targetTabId: tab.id});
+    showPanel();
     const sessionId = crypto.randomUUID();
     const title = (tab.title || 'Reunión').slice(0, 120);
     await chrome.storage.local.set({
