@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const workerSource = fs.readFileSync(path.join(root, 'background.js'), 'utf8');
 const offscreenSource = fs.readFileSync(path.join(root, 'offscreen.js'), 'utf8');
-assert.doesNotMatch(offscreenSource, /chrome\\.storage\\.(local|sync|session)/,
+assert.doesNotMatch(offscreenSource, /chrome\.storage\.(local|sync|session)/,
   'El documento offscreen no debe llamar chrome.storage');
 
 async function main() {
