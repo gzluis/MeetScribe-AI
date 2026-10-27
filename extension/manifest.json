@@ -2,12 +2,26 @@
   "manifest_version": 3,
   "name": "MeetScribe AI — Transcripción local",
   "short_name": "MeetScribe AI",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "description": "Transcripción de clases en vivo y copia rápida de texto para consultas con IA; Whisper local.",
   "minimum_chrome_version": "116",
-  "permissions": ["tabCapture", "offscreen", "storage", "sidePanel", "activeTab"],
-  "host_permissions": ["http://127.0.0.1/*"],
-  "background": {"service_worker": "background.js"},
-  "side_panel": {"default_path": "panel.html"},
-  "action": {"default_title": "MeetScribe AI: abrir y capturar pestaña"}
+  "permissions": [
+    "tabCapture",
+    "offscreen",
+    "storage",
+    "sidePanel",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "action": {
+    "default_title": "MeetScribe AI: abrir y capturar pestaña"
+  }
 }
