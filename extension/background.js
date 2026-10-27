@@ -20,12 +20,60 @@ async function updateStatus(values) {
   await chrome.storage.local.set({capture: values});
 }
 
+// Único punto autorizado para guardar datos: los documentos offscreen de
+// Manifest V3 solo pueden utilizar chrome.runtime.
+let storageQueue = Promise.resolve();
+function queueStorage(operation) {
+  const task = storageQueue.then(operation);
+  storageQueue = task.catch(error => console.error('Error guardando datos de MeetScribe', error));
+  return task;
+}
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.target !== 'background') return false;
+  const allowed = ['CAPTURE_PATCH', 'SESSION_START', 'SESSION_SEGMENT'];
+  if (!allowed.includes(message.type)) return false;
+  void queueStorage(async () => {
+    if (message.type === 'CAPTURE_PATCH') {
+      const previous = (await chrome.storage.local.get('capture')).capture || {};
+      await chrome.storage.local.set({capture: {...previous, ...(message.partial || {})}});
+    } else if (message.type === 'SESSION_START') {
+      const incoming = message.session;
+      if (!incoming?.id) throw new Error('La sesión no tiene identificador');
+      const {sessions = []} = await chrome.storage.local.get('sessions');
+      if (!sessions.some(s => s.id === incoming.id)) {
+        await chrome.storage.local.set({sessions: [{...incoming, segments: []}, ...sessions].slice(0, 30)});
+      }
+    } else if (message.type === 'SESSION_SEGMENT') {
+      const incoming = message.session;
+      if (!incoming?.id || typeof message.segment?.text !== 'string') throw new Error('Segmento inválido');
+      const {sessions = []} = await chrome.storage.local.get('sessions');
+      let item = sessions.find(s => s.id === incoming.id);
+      if (!item) {
+        item = {...incoming, segments: []};
+        sessions.unshift(item);
+      }
+      item.segments ||= [];
+      item.segments.push(message.segment);
+      await chrome.storage.local.set({sessions: sessions.slice(0, 30)});
+    }
+    return {ok: true};
+  }).then(sendResponse, error => sendResponse({ok: false, error: String(error)}));
+  return true;
+});
+
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab?.id) return;
   const showPanel = () => { void chrome.sidePanel.open({tabId: tab.id}).catch(console.error); };
   try {
     const saved = await chrome.storage.local.get(['pairingToken', 'capture']);
-    if (saved.capture?.active || saved.capture?.starting) { showPanel(); return; }
+    // Permite recuperarse de un inicio bloqueado tras actualizar la extensión.
+    const age = Date.now() - (Date.parse(saved.capture?.startedAt || '') || 0);
+    const stale = saved.capture?.starting && age > 20000;
+    if (saved.capture?.active || (saved.capture?.starting && !stale)) { showPanel(); return; }
+    if (stale) {
+      await updateStatus({...saved.capture, active: false, starting: false,
+        error: '', stage: 'Reiniciando captura tras inicio interrumpido'});
+    }
     if (!saved.pairingToken) {
       showPanel();
       await updateStatus({active: false, starting: false, error: 'Pegue primero la clave del servidor local.'});
