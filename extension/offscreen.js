@@ -10,6 +10,12 @@ let stopTimer = null;
 let sentAudioBytes = 0;
 let maxAudioPeak = 0;
 let lastProbeReport = 0;
+let startTask = null;
+let startCancelled = false;
+
+function verifyNotCancelled() {
+  if (startCancelled) throw new Error('Se canceló el inicio de la captura.');
+}
 
 // Los documentos offscreen solo pueden utilizar chrome.runtime (Manifest V3).
 // Todo acceso al almacenamiento se delega al service worker.
@@ -40,6 +46,7 @@ async function stopAudio() {
 }
 
 async function stopCapture() {
+  startCancelled = true;
   if (finishing) return;
   finishing = true;
   await stopAudio();
@@ -69,6 +76,7 @@ async function finalize(error = '') {
 
 async function startCapture(message) {
   if (mediaStream || websocket) return {ok: false, error: 'Ya existe una captura activa.'};
+  startCancelled = false;
   finishing = false;
   await saveCapture({starting: true, active: false, processing: false, error: '', stage: 'Solicitando acceso al audio de la pestaña'});
   sentAudioBytes = 0;
@@ -83,7 +91,9 @@ async function startCapture(message) {
       }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Caducó la autorización de captura. Vuelva a pulsar el icono.')), 15000))
     ]);
+    verifyNotCancelled();
     await saveCapture({stage: 'Audio de la pestaña autorizado. Preparando procesador de sonido'});
+    verifyNotCancelled();
     const audioTrack = mediaStream.getAudioTracks()[0];
     if (!audioTrack) throw new Error('La pestaña no proporcionó ninguna pista de audio.');
     audioTrack.addEventListener('ended', () => {
@@ -91,6 +101,7 @@ async function startCapture(message) {
     });
     context = new AudioContext({latencyHint: 'interactive'});
     await context.audioWorklet.addModule(chrome.runtime.getURL('pcm-worklet.js'));
+    verifyNotCancelled();
     const source = context.createMediaStreamSource(mediaStream);
     // Al capturar una pestaña Chrome deja de reproducirla; restituimos el sonido.
     source.connect(context.destination);
@@ -162,6 +173,7 @@ async function startCapture(message) {
       new Promise((_, reject) => setTimeout(() =>
         reject(new Error('El procesador de audio no pudo activarse. Reinicie la captura sobre una pestaña con sonido.')), 7000))
     ]);
+    verifyNotCancelled();
     if (context.state !== 'running') throw new Error('El procesador de audio está suspendido; compruebe los permisos multimedia de Edge.');
     await sendToWorker('SESSION_START', {session: {...session}});
     await saveCapture({audioProbe: {sentSeconds: 0, rms: 0, peak: 0, maxPeak: 0, channels: 0, updatedAt: Date.now()}});
@@ -178,12 +190,16 @@ async function startCapture(message) {
 chrome.runtime.onMessage.addListener((message, _sender, respond) => {
   if (message.target !== 'offscreen') return false;
   if (message.type === 'START') {
+    if (startTask || mediaStream || websocket) {
+      respond({ok: false, error: 'Hay un intento de captura en curso. Cancele e inténtelo nuevamente.'});
+      return false;
+    }
     respond({ok: true, accepted: true});
-    void startCapture(message).catch(async error => {
+    startTask = startCapture(message).catch(async error => {
       console.error('MeetScribe: falló startCapture', error);
       await saveCapture({active: false, starting: false,
         error: 'Fallo inesperado en captura: ' + (error?.message || String(error))});
-    });
+    }).finally(() => { startTask = null; });
     return false;
   }
   if (message.type === 'STOP') {
